@@ -45,13 +45,15 @@ function gbf() {
 
 # reviewing ブランチ作成（fzf でベースブランチを選択）
 function grvf() {
-  local branch
-  branch=$(git branch -a --sort=-committerdate |
+  local selected
+  selected=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
-    sed 's|^remotes/origin/||' |
+    sed 's|^remotes/||' |
+    grep -v ' -> ' |
     sort -u |
     fzf --prompt="reviewing base> " --preview="git log --oneline -20 {}")
-  [[ -n "$branch" ]] && git checkout -B reviewing "$branch"
+  [[ -z "$selected" ]] && return
+  git checkout -B reviewing "$selected"
 }
 
 # ブランチをfzfで選択して削除（複数選択可）
