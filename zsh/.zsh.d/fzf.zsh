@@ -208,7 +208,7 @@ function chpwd() {
 # 最近のディレクトリをfzfで選択して cd（タブ間共有）
 function cdf() {
   local dir
-  dir=$(tac "$ZSH_DIR_HISTORY" 2>/dev/null | awk '!seen[$0]++' |
+  dir=$({ command -v tac &>/dev/null && tac "$ZSH_DIR_HISTORY" || tail -r "$ZSH_DIR_HISTORY"; } 2>/dev/null | awk '!seen[$0]++' |
     fzf --prompt="cd> " --preview='ls -la {}')
   [[ -n "$dir" ]] && cd "$dir"
 }
