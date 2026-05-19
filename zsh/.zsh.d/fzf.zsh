@@ -98,6 +98,24 @@ function grbf() {
   [[ -n "$branch" ]] && git rebase "$branch"
 }
 
+# ブランチをfzfで選択して rebase --onto <newbase> <upstream>
+function grbof() {
+  local newbase upstream
+  newbase=$(git branch -a --sort=-committerdate |
+    sed 's/^[* ]*//' |
+    sed 's|^remotes/||' |
+    sort -u |
+    fzf --prompt="rebase --onto (newbase)> " --preview="git log --oneline -20 {}")
+  [[ -z "$newbase" ]] && return
+  upstream=$(git branch -a --sort=-committerdate |
+    sed 's/^[* ]*//' |
+    sed 's|^remotes/||' |
+    sort -u |
+    fzf --prompt="rebase --onto (upstream)> " --preview="git log --oneline -20 {}")
+  [[ -z "$upstream" ]] && return
+  git rebase --onto "$newbase" "$upstream"
+}
+
 # コミットをfzfで選択して rebase -i（そのコミットを含む）
 function grbif() {
   local hash
