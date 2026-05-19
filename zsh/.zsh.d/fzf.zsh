@@ -72,6 +72,7 @@ function gllf() {
   branch=$({ echo "$current"; git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
     sed 's|^remotes/||' |
+    grep -v ' -> ' |
     sort -u; } |
     awk '!seen[$0]++' |
     fzf --prompt="log branch> " --preview="git log --oneline -10 {}")
