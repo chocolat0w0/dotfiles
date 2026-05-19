@@ -106,7 +106,7 @@ function grbif() {
     fzf --ansi --no-sort --prompt="rebase -i> " \
         --preview='git show --stat --color=always {1}' |
     awk '{print $1}')
-  [[ -n "$hash" ]] && git rebase -i "${hash}^"
+  [[ -n "$hash" ]] && git rebase -i --autosquash "${hash}^"
 }
 
 # 変更ファイルをfzfで選択して git add / restore --staged（複数選択可、トグル）
