@@ -65,10 +65,19 @@ function gbdf() {
   [[ -n "$branches" ]] && echo "$branches" | xargs git branch -D
 }
 
-# log をfzfでブラウズ（Enter で詳細表示）
+# ブランチをfzfで選択してlogをブラウズ（Enter で詳細表示、デフォルトは現在のブランチ）
 function gllf() {
-  git log --oneline --date=short \
-    --pretty=format:'%C(yellow)%h%Creset %ad %C(cyan)%an%Creset %s%C(auto)%d%Creset' |
+  local branch current
+  current=$(git rev-parse --abbrev-ref HEAD)
+  branch=$({ echo "$current"; git branch -a --sort=-committerdate |
+    sed 's/^[* ]*//' |
+    sed 's|^remotes/||' |
+    sort -u; } |
+    awk '!seen[$0]++' |
+    fzf --prompt="log branch> " --preview="git log --oneline -10 {}")
+  [[ -z "$branch" ]] && return
+  git log --date=short \
+    --pretty=format:'%C(yellow)%h%Creset %ad %C(cyan)%an%Creset %s%C(auto)%d%Creset' "$branch" |
   fzf --ansi --no-sort \
     --preview='git show --stat --color=always {1}' \
     --bind='enter:execute(git show --color=always {1} | less -R)'
