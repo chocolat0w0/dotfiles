@@ -62,7 +62,21 @@ alias gign='git rm -r --cached .; git add .'                                # .g
 alias gw='git worktree list'                                                 # worktree 一覧
 function gwa() { git worktree add "$@" && cd "$1" }                        # worktree 追加して cd
 alias gwd='git worktree remove'                                              # worktree 削除
-function gwb() { cd "$(git worktree list | head -1 | awk '{print $1}')" }  # メイン worktree に戻る
+# メイン worktree に戻る（worktree とブランチの削除を確認）
+function gwb() {
+  local current_path current_branch main_path answer
+  current_path="$PWD"
+  main_path=$(git worktree list | head -1 | awk '{print $1}')
+  [[ "$current_path" == "$main_path" ]] && { echo "Already in main worktree." >&2; return; }
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  cd "$main_path"
+  printf "worktree '%s' とブランチ '%s' を削除しますか? [y/N] " "$current_path" "$current_branch"
+  read -r answer
+  if [[ "$answer" == [yY] ]]; then
+    git worktree remove "$current_path"
+    git branch -D "$current_branch"
+  fi
+}
 
 # C で標準出力をクリップボードにコピーする
 # mollifier delta blog : http://mollifier.hatenablog.com/entry/20100317/p1

@@ -185,13 +185,32 @@ function gwaf() {
   cd "$worktree_path"
 }
 
-# worktreeをfzfで選択して削除（複数選択可）
+# worktreeをfzfで選択して削除（複数選択可、紐づくブランチの削除を追加確認）
 function gwdf() {
   local worktrees
   worktrees=$(git worktree list | tail -n +2 | awk '{print $1}' |
     fzf --multi --prompt="worktree remove> " \
         --preview="git -C {} log --oneline -10 2>/dev/null; echo '---'; ls {}")
-  [[ -n "$worktrees" ]] && echo "$worktrees" | xargs -I{} git worktree remove {}
+  [[ -z "$worktrees" ]] && return
+
+  local wt branch branches=()
+  while IFS= read -r wt; do
+    branch=$(git -C "$wt" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    [[ -n "$branch" && "$branch" != "HEAD" ]] && branches+=("$branch")
+  done <<< "$worktrees"
+
+  echo "$worktrees" | xargs -I{} git worktree remove {}
+
+  if [[ ${#branches[@]} -gt 0 ]]; then
+    printf "ブランチも削除しますか? (%s) [y/N] " "${(j:, :)branches}"
+    local answer
+    read -r answer
+    if [[ "$answer" == [yY] ]]; then
+      for branch in "${branches[@]}"; do
+        git branch -D "$branch"
+      done
+    fi
+  fi
 }
 
 ########################################
