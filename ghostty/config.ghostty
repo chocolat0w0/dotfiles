@@ -3,6 +3,7 @@ theme = tokyonight
 font-family = "PlemolJP Console Text"
 window-padding-x = 20
 window-padding-y = 40
-background-opacity = 0.7
+background-opacity = 0.8
 background-blur = 3
-keybind = "global:cmd+shift+t=toggle_quick_terminal"
+quick-terminal-size = "35%,1024px"
+keybind = "global:alt+space=toggle_quick_terminal"
