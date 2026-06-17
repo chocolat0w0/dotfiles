@@ -185,7 +185,7 @@ function gwn() {
   [[ -z "$branch" ]] && echo "Usage: gwn <new-branch> [<base>]" && return 1
   local repo_root worktree_path
   repo_root=$(git rev-parse --show-toplevel)
-  worktree_path="${repo_root}/../$(basename "$repo_root").worktrees/${branch//\//-}"
+  worktree_path="${repo_root}/.worktree/${branch//\//-}"
   git worktree add --relative-paths -b "$branch" "$worktree_path" "${2:-HEAD}"
   echo "Created: $worktree_path"
   cd "$worktree_path"
@@ -203,7 +203,7 @@ function gwaf() {
   # origin/ プレフィックスを除いたブランチ名を取得
   branch="${selected#origin/}"
   repo_root=$(git rev-parse --show-toplevel)
-  worktree_path="${repo_root}/../$(basename "$repo_root").worktrees/${branch//\//-}"
+  worktree_path="${repo_root}/.worktree/${branch//\//-}"
   if [[ "$selected" == origin/* ]]; then
     git worktree add --relative-paths -b "$branch" "$worktree_path" "$selected"
   else
