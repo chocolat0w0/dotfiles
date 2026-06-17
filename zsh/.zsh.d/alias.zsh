@@ -54,7 +54,6 @@ alias gcp='git cherry-pick'                                                  # c
 alias grma='git status | grep deleted: | awk '\''{print $2}'\'' | xargs git rm'    # deleted ファイルを git rm
 alias grm='git rm'                                                           # rm
 alias grmf='rm'                                                              # rm (force, git管理外)
-alias grh='git reset --hard HEAD'                                            # reset --hard HEAD
 alias grv='git checkout -B reviewing'                                        # reviewing ブランチに checkout
 alias gign='git rm -r --cached .; git add .'                                # .gitignore を反映
 
