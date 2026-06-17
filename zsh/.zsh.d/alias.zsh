@@ -44,6 +44,9 @@ alias gf='git fetch --prune'                                                 # f
 alias gpl='git rev-parse --abbrev-ref HEAD | xargs git pull origin'         # pull origin (current branch)
 alias gps='git rev-parse --abbrev-ref HEAD | xargs git push origin'         # push origin (current branch)
 
+#> git / pull request
+function gpr() { gh pr create --web --base main --head "$(git rev-parse --abbrev-ref HEAD)" }    # main 向けPR作成画面をブラウザで開く
+
 #> git / log
 alias gll='git log  -10 --date=short --pretty=format:'\''%C(yellow)%h%Creset %ad  %C(cyan bold)%an%Creset%x09%C(auto)%d%Creset %s'\'''    # log (10件)
 alias glgg='git log --graph --date=short --format="%C(yellow)%h%C(reset) %C(magenta)[%ad]%C(reset)%C(auto)%d%C(reset) %s %C(cyan)@%an%C(reset)"'    # log (graph)
