@@ -7,12 +7,16 @@ autoload -Uz VCS_INFO_get_data_git; VCS_INFO_get_data_git 2> /dev/null
 
 function rprompt-git-current-branch {
         local name st color gitdir action
+        local max_branch_length=30
         if [[ "$PWD" =~ '/¥.git(/.*)?$' ]]; then
                 return
         fi
         name=`git rev-parse --abbrev-ref=loose HEAD 2> /dev/null`
         if [[ -z $name ]]; then
                 return
+        fi
+        if (( ${#name} > max_branch_length )); then
+                name="${name[1,14]}…${name[-15,-1]}"
         fi
 
         gitdir=`git rev-parse --git-dir 2> /dev/null`
@@ -30,13 +34,13 @@ function rprompt-git-current-branch {
                 color="%S%B"$PINK
         fi
 
-        echo "$color$name$action%u%f%b%s "
+        echo "[$color$name$action%u%f%b%s]"
 }
 
 setopt prompt_subst
 setopt transient_rprompt
 
-RPROMPT='[`rprompt-git-current-branch`%~]'
+RPROMPT='`rprompt-git-current-branch`'
 
 
 ########################################
@@ -55,4 +59,3 @@ kterm*|xterm*)
     }
   fi
 esac
-
