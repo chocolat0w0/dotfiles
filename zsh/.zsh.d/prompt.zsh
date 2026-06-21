@@ -34,6 +34,7 @@ function rprompt-git-current-branch {
 }
 
 setopt prompt_subst
+setopt transient_rprompt
 
 RPROMPT='[`rprompt-git-current-branch`%~]'
 
@@ -54,5 +55,4 @@ kterm*|xterm*)
     }
   fi
 esac
-
 

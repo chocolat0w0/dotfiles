@@ -13,7 +13,7 @@ local PINK="%S%B%F%{\e[38;5;200m%}"
 # プロンプトに色を付ける
 autoload -Uz colors; colors
 # 一般ユーザ時
-tmp_prompt="%{${fg[cyan]}%}%n%# %{${reset_color}%}"
+tmp_prompt="%{${fg[cyan]}%}%n [%*]%# %{${reset_color}%}"
 tmp_prompt2="%{${fg[cyan]}%}%_> %{${reset_color}%}"
 tmp_rprompt="%{${fg[green]}%}[%~]%{${reset_color}%}"
 tmp_sprompt="%{${fg[yellow]}%}%r is correct? [Yes, No, Abort, Edit]:%{${reset_color}%}"
@@ -60,4 +60,3 @@ kterm*)
 cons25*)
   ;;
 esac
-
