@@ -1,0 +1,9 @@
+service_tier = "default"
+plan_mode_reasoning_effort = "high"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+model_reasoning_effort = "medium"
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true
