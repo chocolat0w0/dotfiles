@@ -107,6 +107,7 @@ if [ "$created_claude_settings" = true ]; then
   echo "Claude Code plugin install commands:"
   echo "  /plugin marketplace add openai/codex-plugin-cc"
   echo "  /plugin install codex@openai-codex"
+  echo "  /plugin install superpowers@claude-plugins-official"
   echo "  /reload-plugins"
   echo "  /codex:setup"
 fi
