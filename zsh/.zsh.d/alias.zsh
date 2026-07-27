@@ -18,7 +18,12 @@ alias sudo='sudo '
 # グローバルエイリアス
 alias -g L='| less'
 alias -g G='| grep'
-alias -g S='| xargs subl'
+
+#> lazygit
+alias lg='lazygit'                                                           # lazygit
+
+#> devcontainer
+alias dvc='devcontainer up --dotfiles-repository https://github.com/chocolat0w0/dotfiles.git --dotfiles-install-command setup-devcontainer.sh' # devcontainer with dotfiles
 
 #> git / status
 alias gst='git status -s'                                                    # status (short)
