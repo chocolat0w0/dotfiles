@@ -16,7 +16,7 @@ function codeop() {
 # GH_TOKEN をその場限りの環境変数として渡す。コンテナへの反映は devcontainer.json の
 #   "remoteEnv": { "GH_TOKEN": "${localEnv:GH_TOKEN}" }
 # 経由。以後の対話利用は dvex（下記）か codeop 起動の VS Code から行う
-function dvcop() {
+function dvop() {
   local op_path="${CODEOP_GH_TOKEN_PATH:-op://YOUR_VAULT/YOUR_ITEM/token}"
   local token
   token=$(op read "$op_path") || return
