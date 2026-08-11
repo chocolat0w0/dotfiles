@@ -122,13 +122,17 @@ fi
 if command -v claude >/dev/null 2>&1; then
   run_setup_command "add Crit marketplace to Claude Code" claude plugin marketplace add tomasz-tomczyk/crit
   run_setup_command "install Crit plugin for Claude Code" claude plugin install crit@crit
-  run_setup_command "install Superpowers plugin for Claude Code" claude plugin install superpowers@claude-plugins-official
+  run_setup_command "update Claude Code official plugin marketplace" claude plugin marketplace update claude-plugins-official
+  run_setup_command "install Superpowers plugin for Claude Code" claude plugin install superpowers@claude-plugins-official --scope user
 else
   echo "skip Claude Code plugins: Claude Code is unavailable"
 fi
 
 if command -v codex >/dev/null 2>&1; then
-  run_setup_command "install Superpowers plugin for Codex" codex plugin add superpowers@openai-curated
+  echo "Codex Superpowers plugin requires interactive installation:"
+  echo "  1. Start Codex"
+  echo "  2. Open /plugins"
+  echo "  3. Select and install Superpowers"
 else
   echo "skip Codex plugins: Codex is unavailable"
 fi
