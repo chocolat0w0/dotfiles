@@ -21,7 +21,9 @@ function _dv_personal_config() {
 
   host_path="${remote_url#*://}"   # プロトコル除去 (https://, ssh://)
   host_path="${host_path#*@}"      # user@ 除去 (git@)
-  host_path="${host_path/:/\/}"    # host:path → host/path (SSH形式)
+  if [[ "$host_path" == *:* ]]; then # host:path → host/path (SSH形式)
+    host_path="${host_path%%:*}/${host_path#*:}"
+  fi
   host_path="${host_path%.git}"    # .git サフィックス除去
 
   config_path=".devcontainer-personal/${host_path}/.devcontainer/devcontainer.json"
