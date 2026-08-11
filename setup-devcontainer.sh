@@ -6,7 +6,6 @@ echo "start setup (devcontainer)"
 
 failed_paths=()
 failed_contents=()
-created_claude_settings=false
 script_dir=$(cd "$(dirname "$0")"; pwd)
 
 display_path() {
@@ -104,10 +103,7 @@ ln -fs "${script_dir}/zsh/.zshrc" "${HOME}/.zshrc"
 ln -nfs "${script_dir}/zsh/.zsh.d" "${HOME}/.zsh.d"
 
 echo "setup Claude Code"
-if copy_file_if_missing "${script_dir}/devcontainer/home/.claude/settings.json" "${HOME}/.claude/settings.json" 0644; then
-  created_claude_settings=true
-fi
-
+copy_file_if_missing "${script_dir}/devcontainer/home/.claude/settings.json" "${HOME}/.claude/settings.json" 0644
 copy_file_if_missing "${script_dir}/devcontainer/home/.claude/statusline-command.sh" "${HOME}/.claude/statusline-command.sh" 0755
 
 echo "setup Codex"
@@ -141,16 +137,6 @@ if command -v crit >/dev/null 2>&1 && command -v codex >/dev/null 2>&1; then
   run_setup_command "configure Crit Codex plugin" bash -c 'cd "$HOME" && crit install codex-plugin'
 else
   echo "skip Crit Codex plugin: Crit or Codex is unavailable"
-fi
-
-
-if [ "$created_claude_settings" = true ]; then
-  echo "Claude Code plugin install commands:"
-  echo "  /plugin marketplace add openai/codex-plugin-cc"
-  echo "  /plugin install codex@openai-codex"
-  echo "  /plugin install superpowers@claude-plugins-official"
-  echo "  /reload-plugins"
-  echo "  /codex:setup"
 fi
 
 if [ "${#failed_paths[@]}" -gt 0 ]; then
