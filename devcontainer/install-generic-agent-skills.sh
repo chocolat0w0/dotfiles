@@ -13,6 +13,7 @@ install_skills() {
   local target_dir
 
   [ -d "${source_dir}" ] || return 0
+  mkdir -p "${agent_skills_dir}"
 
   for skill_source in "${source_dir}"/*; do
     [ -d "${skill_source}" ] || continue
@@ -24,9 +25,13 @@ install_skills() {
     fi
 
     target_dir="${agent_skills_dir}/${skill_name}"
-    mkdir -p "${target_dir}"
-    cp -a "${skill_source}/." "${target_dir}/"
-    echo "installed generic skill: ${skill_name} -> ${agent_skills_dir}"
+    if [ -L "${target_dir}" ]; then
+      rm -f -- "${target_dir}"
+    elif [ -e "${target_dir}" ]; then
+      rm -rf -- "${target_dir}"
+    fi
+    ln -s "${skill_source}" "${target_dir}"
+    echo "linked generic skill: ${skill_name} -> ${agent_skills_dir}"
   done
 }
 

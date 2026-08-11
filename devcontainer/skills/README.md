@@ -18,8 +18,11 @@ opposite direction. This keeps tool-specific instructions out of the other
 agent's skill discovery path.
 
 `../install-generic-agent-skills.sh` runs from `setup-devcontainer.sh` and
-copies the skills to their applicable paths under `~/.claude/skills` and
-`~/.codex/skills`.
+creates directory symlinks under `~/.claude/skills` and `~/.codex/skills`.
+After pulling this dotfiles repository inside the container, linked skill
+content is updated without rerunning the installer. Start a new agent session
+when the running agent has already loaded the previous skill content.
 
-The script only copies or updates skills; it does not remove a destination
-skill when its source is deleted.
+When rerun, the script replaces an existing destination directory for each
+managed skill with a symlink. It does not remove a destination symlink when
+its source skill is deleted.
