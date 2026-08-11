@@ -7,3 +7,6 @@ model_reasoning_effort = "medium"
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "git-branch", "five-hour-limit", "weekly-limit"]
 status_line_use_colors = true
+notifications = true
+notification_method = "osc9"
+notification_condition = "always"

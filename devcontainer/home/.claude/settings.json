@@ -14,5 +14,19 @@
       }
     }
   },
-  "theme": "dark"
+  "theme": "dark",
+  "preferredNotifChannel": "notifications_disabled",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"terminalSequence\":\"\\u001b]9;Claude Code needs your attention\\u0007\"}'"
+          }
+        ]
+      }
+    ]
+  }
 }

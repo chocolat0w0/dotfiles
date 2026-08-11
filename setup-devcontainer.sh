@@ -71,6 +71,16 @@ copy_file_if_missing() {
   return 0
 }
 
+run_setup_command() {
+  local description="$1"
+  shift
+
+  echo "$description"
+  if ! "$@"; then
+    failed_paths+=("$description")
+  fi
+}
+
 # Install fzf
 if ! command -v fzf >/dev/null 2>&1; then
   echo "installing fzf"
@@ -102,6 +112,33 @@ copy_file_if_missing "${script_dir}/devcontainer/home/.claude/statusline-command
 
 echo "setup Codex"
 copy_file_if_missing "${script_dir}/devcontainer/home/.codex/config.toml" "${HOME}/.codex/config.toml" 0644
+run_setup_command "install generic agent skills" "${script_dir}/devcontainer/install-generic-agent-skills.sh"
+if command -v go >/dev/null 2>&1; then
+  run_setup_command "install Crit" go install github.com/tomasz-tomczyk/crit/cmd/crit@v0.18.1
+else
+  echo "skip Crit install: Go is unavailable"
+fi
+
+if command -v claude >/dev/null 2>&1; then
+  run_setup_command "add Crit marketplace to Claude Code" claude plugin marketplace add tomasz-tomczyk/crit
+  run_setup_command "install Crit plugin for Claude Code" claude plugin install crit@crit
+  run_setup_command "install Superpowers plugin for Claude Code" claude plugin install superpowers@claude-plugins-official
+else
+  echo "skip Claude Code plugins: Claude Code is unavailable"
+fi
+
+if command -v codex >/dev/null 2>&1; then
+  run_setup_command "install Superpowers plugin for Codex" codex plugin add superpowers@openai-curated
+else
+  echo "skip Codex plugins: Codex is unavailable"
+fi
+
+if command -v crit >/dev/null 2>&1 && command -v codex >/dev/null 2>&1; then
+  run_setup_command "configure Crit Codex plugin" bash -c 'cd "$HOME" && crit install codex-plugin'
+else
+  echo "skip Crit Codex plugin: Crit or Codex is unavailable"
+fi
+
 
 if [ "$created_claude_settings" = true ]; then
   echo "Claude Code plugin install commands:"
@@ -113,17 +150,19 @@ if [ "$created_claude_settings" = true ]; then
 fi
 
 if [ "${#failed_paths[@]}" -gt 0 ]; then
-  echo "failed to configure some user settings files:" >&2
+  echo "failed to complete some devcontainer setup steps:" >&2
   for failed_path in "${failed_paths[@]}"; do
     echo "  - ${failed_path}" >&2
   done
 
-  echo >&2
-  echo "not written contents:" >&2
-  for failed_content in "${failed_contents[@]}"; do
-    echo "$failed_content" >&2
+  if [ "${#failed_contents[@]}" -gt 0 ]; then
     echo >&2
-  done
+    echo "not written contents:" >&2
+    for failed_content in "${failed_contents[@]}"; do
+      echo "$failed_content" >&2
+      echo >&2
+    done
+  fi
 
   echo "complete setup (with errors)"
   exit 1
