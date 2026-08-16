@@ -11,22 +11,11 @@ function codeop() {
   GH_TOKEN="$op_path" op run -- code "${@:-.}"
 }
 
-# origin の URL から .devcontainer/personal/<host>/<org>/<repo>/.devcontainer/devcontainer.json
-# を解決する。存在すればそのパスを出力、無ければ何も出力せず失敗を返す（dvop/dvex 用）
+# .devcontainer/personal/devcontainer.json があればそのパスを出力、
+# 無ければ何も出力せず失敗を返す（dvop/dvex 用）
 
 function _dv_personal_config() {
-  local remote_url host_path config_path
-  remote_url=$(git config --get remote.origin.url 2>/dev/null) || return 1
-  [[ -z "$remote_url" ]] && return 1
-
-  host_path="${remote_url#*://}"   # プロトコル除去 (https://, ssh://)
-  host_path="${host_path#*@}"      # user@ 除去 (git@)
-  if [[ "$host_path" == *:* ]]; then # host:path → host/path (SSH形式)
-    host_path="${host_path%%:*}/${host_path#*:}"
-  fi
-  host_path="${host_path%.git}"    # .git サフィックス除去
-
-  config_path=".devcontainer/personal/${host_path}/.devcontainer/devcontainer.json"
+  local config_path=".devcontainer/personal/devcontainer.json"
   [[ -f "$config_path" ]] || return 1
   echo "$config_path"
 }
@@ -55,7 +44,7 @@ function dvop() {
 # 1Password の GH_TOKEN を注入して devcontainer 内でコマンド実行（既定は対話シェル）
 # devcontainer.json の remoteEnv: { "GH_TOKEN": "${localEnv:GH_TOKEN}" } が
 # その場の GH_TOKEN を解決して注入する。トークンは毎回 op から取るので Rebuild 不要
-# .devcontainer-personal に個人用設定があれば自動でそちらを使う
+# .devcontainer/personal に個人用設定があれば自動でそちらを使う
 # 例: dvex            → コンテナ内で zsh を起動
 #     dvex gh auth status
 function dvex() {
