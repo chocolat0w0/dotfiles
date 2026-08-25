@@ -242,6 +242,21 @@ function gwdf() {
 }
 
 ########################################
+#> markdown / fzf
+
+# markdown をfzfで選択して HTML に変換してブラウザで開く
+function mdpf() {
+  local file
+  file=$(find . \( -name .git -o -name node_modules \) -prune -o \
+      -type f -name '*.md' -print 2>/dev/null |
+    sed 's|^\./||' |
+    sort |
+    fzf --prompt="markdown> " --preview='head -100 {}' \
+        --preview-window=right:60%)
+  [[ -n "$file" ]] && mdp "$file"
+}
+
+########################################
 #> navigation
 
 # ディレクトリ移動履歴をファイルに記録（タブ間共有のため）

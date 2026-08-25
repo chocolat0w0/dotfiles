@@ -85,6 +85,46 @@ function gwb() {
   fi
 }
 
+#> markdown
+
+# markdown を HTML に変換してブラウザで開く: mdp <file.md>
+function mdp() {
+  local file="$1"
+  if [[ -z "$file" ]]; then
+    echo "Usage: mdp <file.md>" >&2
+    return 1
+  fi
+  if [[ ! -f "$file" ]]; then
+    echo "mdp: no such file: $file" >&2
+    return 1
+  fi
+  if ! command -v pandoc >/dev/null 2>&1; then
+    echo "mdp: pandoc が必要です。'brew install pandoc' でインストールしてください。" >&2
+    return 1
+  fi
+
+  # 画像などをHTMLに埋め込むオプション（pandoc 3系と2系で名前が違う）
+  local embed
+  if pandoc --list-options 2>/dev/null | grep -q -- '--embed-resources'; then
+    embed='--embed-resources'
+  else
+    embed='--self-contained'
+  fi
+
+  local tmpdir base out
+  tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/mdp.XXXXXXXX") || return 1
+  base=$(basename "$file")
+  out="${tmpdir}/${base%.*}.html"
+
+  pandoc -f gfm -t html --standalone "$embed" --metadata title="$base" \
+    -o "$out" "$file" || return 1
+
+  case ${OSTYPE} in
+    darwin*) open "$out" ;;
+    *)       xdg-open "$out" >/dev/null 2>&1 ;;
+  esac
+}
+
 # C で標準出力をクリップボードにコピーする
 # mollifier delta blog : http://mollifier.hatenablog.com/entry/20100317/p1
 if which pbcopy >/dev/null 2>&1 ; then
