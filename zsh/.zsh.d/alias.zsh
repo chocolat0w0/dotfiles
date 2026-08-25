@@ -103,12 +103,20 @@ function mdp() {
     return 1
   fi
 
-  # 画像などをHTMLに埋め込むオプション（pandoc 3系と2系で名前が違う）
-  local embed
-  if pandoc --list-options 2>/dev/null | grep -q -- '--embed-resources'; then
+  # pandoc のバージョンでオプション名が違うため --help を見て決める
+  #   --self-contained  → --embed-resources    (2.19 で改称)
+  #   --highlight-style → --syntax-highlighting (3.10 で改称)
+  local help embed hl
+  help=$(pandoc --help 2>&1)
+  if [[ "$help" == *--embed-resources* ]]; then
     embed='--embed-resources'
   else
     embed='--self-contained'
+  fi
+  if [[ "$help" == *--syntax-highlighting* ]]; then
+    hl='--syntax-highlighting'
+  else
+    hl='--highlight-style'
   fi
 
   local tmpdir base out
@@ -116,8 +124,12 @@ function mdp() {
   base=$(basename "$file")
   out="${tmpdir}/${base%.*}.html"
 
+  # 本文幅は pandoc 既定の 36em だと狭いので広げる（MDP_MAX_WIDTH で上書き可）
+  # コードブロックは明色テーマだと背景色が付かず本文に埋もれるため暗色テーマにする
+  # （MDP_HIGHLIGHT_STYLE で上書き可: pandoc --list-highlight-styles 参照）
   pandoc -f gfm -t html --standalone "$embed" --metadata title="$base" \
-    -o "$out" "$file" || return 1
+    "$hl=${MDP_HIGHLIGHT_STYLE:-zenburn}" \
+    -V maxwidth="${MDP_MAX_WIDTH:-50em}" -o "$out" "$file" || return 1
 
   case ${OSTYPE} in
     darwin*) open "$out" ;;
