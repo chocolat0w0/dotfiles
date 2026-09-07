@@ -1,7 +1,0 @@
-interface:
-  display_name: "Session Friction Log"
-  short_description: "Record project-shared session friction and propose approved permanent fixes after three recurrences"
-  default_prompt: "Use $session-friction-log to review this collaboration session, update the project-shared friction log, and propose a permanent fix for my approval only when an unresolved item has recurred in three sessions."
-policy:
-  # 振り返りはユーザーの明示依頼だけで行う。
-  allow_implicit_invocation: false

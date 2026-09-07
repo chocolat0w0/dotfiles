@@ -17,8 +17,11 @@ description: Use only when the user asks to review collaboration in the current 
 このファイルを唯一の永続データとして扱う。スキルのインストール元・エージェントの
 個人設定・会話履歴の保存先へ、ログを書き込まない。
 
-書式、カテゴリ、状態、回数の定義は [log-format.md](references/log-format.md) に従う。
-ログを更新する前に必ず読む。
+書式、カテゴリ、状態、回数、ファイル全体の骨組みは
+[log-format.md](references/log-format.md) に従う。ログを更新する前に必ず読む。
+
+ログが存在しない場合は、`docs/` ごと作成し、log-format.md の骨組みから始める。
+構造を自分で決めない。エージェントごとに構造が分かれると共有ログとして読めなくなる。
 
 ## Evidence
 
@@ -27,13 +30,15 @@ description: Use only when the user asks to review collaboration in the current 
 
 過去の会話エクスポートを読む方法はエージェントごとに異なる。Claude Code の過去
 transcript を対象にするときだけ、このスキルに同梱された Claude 専用抽出器
-`extract_claude_friction.py` を使える。インストール済みスキルディレクトリから次の形で
-実行する。
+`extract_claude_friction.py` を使える。このスキルのディレクトリ（Claude Code なら
+通常 `~/.claude/skills/session-friction-log`）から次の形で実行する。`--cwd` には
+サブディレクトリではなくプロジェクトルートを渡す。
 
 ```bash
-python3 <installed-skill-dir>/scripts/extract_claude_friction.py --cwd <project-root>
-python3 <installed-skill-dir>/scripts/extract_claude_friction.py --list --cwd <project-root>
-python3 <installed-skill-dir>/scripts/extract_claude_friction.py --session <id> --cwd <project-root>
+skill=~/.claude/skills/session-friction-log
+python3 "$skill/scripts/extract_claude_friction.py" --cwd <project-root>
+python3 "$skill/scripts/extract_claude_friction.py" --list --cwd <project-root>
+python3 "$skill/scripts/extract_claude_friction.py" --session <id> --cwd <project-root>
 ```
 
 Codex を含め、抽出器が利用できない環境では、現在見えている会話とユーザーが示した資料を
@@ -78,6 +83,8 @@ Codex を含め、抽出器が利用できない環境では、現在見えて�
 
 ### 4. 共有ログを更新する
 
+- 対象セッションの ID を確定する。自分のセッション ID を取得できないエージェントは、
+  log-format.md の代替 ID 規則に従う。ID を空欄にしない。
 - 新規エントリには `F-` + 次の連番を付ける。
 - 再発は、対象セッション ID が既存の `記録セッション` にないときだけ回数を 1 増やし、
   対象セッションの日付を追記する。

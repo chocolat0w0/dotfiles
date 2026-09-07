@@ -1,5 +1,0 @@
-{"uuid":"u1","sessionId":"abc12345","timestamp":"2026-09-07T00:00:00Z","type":"user","message":{"content":"今回を振り返って"}}
-{"uuid":"a1","parentUuid":"u1","type":"assistant","message":{"content":[{"type":"tool_use","id":"tool-1","name":"Bash","input":{"command":"bad-command"}}]}}
-{"uuid":"u2","parentUuid":"a1","timestamp":"2026-09-07T00:01:00Z","type":"user","toolDenialKind":"user-rejected","message":{"content":[{"type":"tool_result","tool_use_id":"tool-1","content":"Permission for this action was denied"}]}}
-{"uuid":"a2","parentUuid":"u2","type":"assistant","message":{"content":[{"type":"tool_use","id":"tool-2","name":"Bash","input":{"command":"broken-command"}}]}}
-{"uuid":"u3","parentUuid":"a2","timestamp":"2026-09-07T00:02:00Z","type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tool-2","is_error":true,"content":"command not found"}]}}

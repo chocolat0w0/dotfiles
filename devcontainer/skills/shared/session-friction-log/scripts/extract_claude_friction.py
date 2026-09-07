@@ -14,16 +14,16 @@
 
 使い方:
     # 現在の作業ディレクトリの最新セッション（= たいてい今のセッション）
-    python3 extract_friction.py
+    python3 extract_claude_friction.py
 
     # セッションを明示
-    python3 extract_friction.py --session f61599e0
+    python3 extract_claude_friction.py --session f61599e0
 
     # transcript を新しい順に一覧する
-    python3 extract_friction.py --list
+    python3 extract_claude_friction.py --list
 
     # JSON で出す（自前で加工したいとき）
-    python3 extract_friction.py --json
+    python3 extract_claude_friction.py --json
 """
 
 from __future__ import annotations
@@ -70,13 +70,55 @@ NON_PROMPT_MARKERS = [
 ]
 
 
+def encode_cwd(cwd: str) -> str:
+    """cwd を Claude Code の transcript ディレクトリ名へ変換する。
+
+    `/` だけでなく `.` も `-` になる。worktree を `.worktree/` の下に置く運用では
+    `.` を落とすと transcript を丸ごと見失うので、両方を置換する。
+    例: /repo/.worktree/feat -> -repo--worktree-feat
+    """
+    return re.sub(r"[/.]", "-", cwd)
+
+
+def recorded_cwd(directory: Path) -> str:
+    """transcript が自分で記録している作業ディレクトリを読む。
+
+    先頭行にはまだ `cwd` が無いことがあるので、見つかるまで数行読む。
+    """
+    for path in directory.glob("*.jsonl"):
+        try:
+            with path.open(encoding="utf-8") as fh:
+                for _ in range(50):
+                    line = fh.readline()
+                    if not line:
+                        break
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if cwd := row.get("cwd"):
+                        return cwd
+        except OSError:
+            continue
+    return ""
+
+
 def project_dir(cwd: str) -> Path:
     """cwd から Claude Code の transcript 置き場を導く。
 
-    Claude Code は cwd の `/` を `-` に置換したディレクトリ名を使う。
-    例: /workspace -> ~/.claude/projects/-workspace
+    命名規則は Claude Code 側の実装都合で変わりうる。規則から導けなかったときは、
+    transcript 自身が記録している `cwd` と突き合わせて探し直す。
     """
-    return Path.home() / ".claude" / "projects" / cwd.replace("/", "-")
+    root = Path.home() / ".claude" / "projects"
+    direct = root / encode_cwd(cwd)
+    if direct.is_dir() or not root.is_dir():
+        return direct
+
+    wanted = {cwd, str(Path(cwd).resolve())}
+    for candidate in sorted(root.iterdir()):
+        if candidate.is_dir() and recorded_cwd(candidate) in wanted:
+            return candidate
+    return direct
 
 
 def find_transcripts(cwd: str) -> list[Path]:
@@ -275,7 +317,11 @@ def collect(path: Path, include_sidechain: bool = False, max_chars: int = 1200) 
             body = result_text(block).strip()
             # 失敗した呼び出し自体が分類の主材料。ツール名だけでは足りないので引数を出す。
             call = tool_uses.get(block.get("tool_use_id") or "", "")
-            if denial_kind or any(m in body for m in DENIAL_MARKERS):
+            # 本文の語句一致は失敗した結果にだけ適用する。成功した Read の中身が
+            # たまたま拒否メッセージを含むことがあり（このスクリプト自身がそう）、
+            # 無条件に当てると読んだだけのファイルが拒否として記録される。
+            failed = bool(block.get("is_error"))
+            if denial_kind or (failed and any(m in body for m in DENIAL_MARKERS)):
                 add(
                     {
                         "kind": "tool-denied",
@@ -286,7 +332,7 @@ def collect(path: Path, include_sidechain: bool = False, max_chars: int = 1200) 
                         "preceding_assistant": preceding_assistant(row),
                     }
                 )
-            elif block.get("is_error"):
+            elif failed:
                 add(
                     {
                         "kind": "tool-error",
