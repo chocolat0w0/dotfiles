@@ -1,12 +1,16 @@
 ---
-name: session-friction-log
-description: Use only when the user asks to review collaboration in the current or a past session — what went wrong, where they had to correct the agent, what was redone, or what keeps recurring — and to record the result in the project-shared friction log. Do not use for code, diff, PR, product, build, or test reviews. Do not start a retrospective without an explicit user request.
+name: session-retrospective
+description: Use only when the user asks to review collaboration in the current or a past session — what went wrong, where they had to correct the agent, what was redone, or what keeps recurring — to record it in the project-shared friction log, and to propose a permanent fix once the same cause has recurred in three sessions. Do not use for code, diff, PR, product, build, or test reviews. Do not start a retrospective without an explicit user request.
 ---
 
-# Session Friction Log
+# Session Retrospective
 
-セッション中の摩擦（ユーザーによる軌道修正、前提や範囲の認識違い、不要な手戻り）を
-記録し、同じ原因が 3 セッションで再発したときに恒久対応を提案する。
+セッションのやり取りを振り返り、摩擦（ユーザーによる軌道修正、前提や範囲の認識違い、
+不要な手戻り）を共有ログに記録して、同じ原因が 3 セッションで再発したときに恒久対応を
+提案する。記録は目的ではなく、次のセッションのエージェントの動きを変えるための手段。
+
+対象は協働のしかたであって、成果物ではない。コード、差分、PR、ビルド、テストの
+レビューには使わない。
 
 **ユーザーが明示的に依頼したときだけ起動する。** 通常作業中に勝手に振り返りや記録を
 始めない。
@@ -31,11 +35,11 @@ description: Use only when the user asks to review collaboration in the current 
 過去の会話エクスポートを読む方法はエージェントごとに異なる。Claude Code の過去
 transcript を対象にするときだけ、このスキルに同梱された Claude 専用抽出器
 `extract_claude_friction.py` を使える。このスキルのディレクトリ（Claude Code なら
-通常 `~/.claude/skills/session-friction-log`）から次の形で実行する。`--cwd` には
+通常 `~/.claude/skills/session-retrospective`）から次の形で実行する。`--cwd` には
 サブディレクトリではなくプロジェクトルートを渡す。
 
 ```bash
-skill=~/.claude/skills/session-friction-log
+skill=~/.claude/skills/session-retrospective
 python3 "$skill/scripts/extract_claude_friction.py" --cwd <project-root>
 python3 "$skill/scripts/extract_claude_friction.py" --list --cwd <project-root>
 python3 "$skill/scripts/extract_claude_friction.py" --session <id> --cwd <project-root>

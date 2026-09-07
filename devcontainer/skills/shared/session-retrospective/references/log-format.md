@@ -90,7 +90,7 @@ ID は `F-` + 連番で、カテゴリをまたいで通し番号にする。`�
 ````markdown
 # Agent friction log
 
-セッション中の摩擦の共有記録。書式の定義はスキル `session-friction-log` の
+セッション中の摩擦の共有記録。書式の定義はスキル `session-retrospective` の
 `references/log-format.md` を正とする。このファイルには記録だけを置く。
 
 ## 集計済みセッション
