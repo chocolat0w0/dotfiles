@@ -16,6 +16,7 @@ path=(
       ${HOME}/.anyenv/envs/nodenv/shims(N-/)
       ${HOME}/.anyenv/envs/nodenv/bin(N-/)
       ${HOME}/.anyenv/envs/pyenv/shims(N-/)
+      /usr/local/share/nvm/current/bin(N-/)
       /opt/homebrew/bin(N-/)
       /opt/homebrew/sbin(N-/)
       /opt/homebrew/opt/libpq/bin(N-/)
