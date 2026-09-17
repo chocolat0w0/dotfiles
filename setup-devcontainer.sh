@@ -102,6 +102,11 @@ echo "setup zsh"
 ln -fs "${script_dir}/zsh/.zshrc" "${HOME}/.zshrc"
 ln -nfs "${script_dir}/zsh/.zsh.d" "${HOME}/.zsh.d"
 
+echo "setup agent instructions"
+mkdir -p "${HOME}/.claude" "${HOME}/.codex"
+ln -nfs "${script_dir}/devcontainer/instructions/AGENTS.md" "${HOME}/.claude/CLAUDE.md"
+ln -nfs "${script_dir}/devcontainer/instructions/AGENTS.md" "${HOME}/.codex/AGENTS.md"
+
 echo "setup Claude Code"
 copy_file_if_missing "${script_dir}/devcontainer/home/.claude/settings.json" "${HOME}/.claude/settings.json" 0644
 copy_file_if_missing "${script_dir}/devcontainer/home/.claude/statusline-command.sh" "${HOME}/.claude/statusline-command.sh" 0755

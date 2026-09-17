@@ -20,6 +20,11 @@ devcontainer では次を実行する
 - `devcontainer/home/.claude/statusline-command.sh` -> `~/.claude/statusline-command.sh`
 - `devcontainer/home/.codex/config.toml` -> `~/.codex/config.toml`
 
+`devcontainer/instructions/AGENTS.md` は Claude Code と Codex に共通で読ませるグローバル指示です。`setup-devcontainer.sh` がシンボリックリンクを張るので、コンテナ内で本リポジトリを pull すれば内容が反映されます（実行中のエージェントには次のセッションから反映）。
+
+- `devcontainer/instructions/AGENTS.md` -> `~/.claude/CLAUDE.md`
+- `devcontainer/instructions/AGENTS.md` -> `~/.codex/AGENTS.md`
+
 VSCode の `dotfiles: Install Command` に指定してください。
 
 ## カスタムコマンド
