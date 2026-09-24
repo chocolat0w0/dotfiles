@@ -6,9 +6,12 @@ echo "set alias"
 alias la='ls -a'
 alias ll='ls -la'
 
+# エージェントのシェルは対話確認に答えられず、プロンプトで止まるため人間の端末だけに効かせる
+if [[ -z "$CLAUDECODE" ]]; then
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
+fi
 
 alias mkdir='mkdir -p'
 
