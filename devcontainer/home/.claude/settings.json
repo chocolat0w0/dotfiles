@@ -37,9 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command // \"\"' | grep -qE '(^|[;&|[:space:]])crit([[:spa
-ce:]]+(--(session|range|pr)|plan|live|preview|story)\\b|[[:space:]]*$)' && printf '%s\\n' '{\"termina
-lSequence\":\"\\u001b]9;Crit is ready for review\\u0007\"}' || true"
+            "command": "jq -r '.tool_input.command // \"\"' | grep -qE '(^|[;&|[:space:]])crit([[:space:]]+(--(session|range|pr)|plan|live|preview|story)\\b|[[:space:]]*$)' && printf '%s\\n' '{\"terminalSequence\":\"\\u001b]9;Crit is ready for review\\u0007\"}' || true"
           }
         ]
       }
