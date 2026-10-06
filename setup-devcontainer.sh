@@ -102,6 +102,9 @@ echo "setup zsh"
 ln -fs "${script_dir}/zsh/.zshrc" "${HOME}/.zshrc"
 ln -nfs "${script_dir}/zsh/.zsh.d" "${HOME}/.zsh.d"
 
+echo "setup git"
+run_setup_command "use relative paths for Git worktrees" git config --global worktree.useRelativePaths true
+
 echo "setup agent instructions"
 mkdir -p "${HOME}/.claude" "${HOME}/.codex"
 ln -nfs "${script_dir}/devcontainer/instructions/AGENTS.md" "${HOME}/.claude/CLAUDE.md"
