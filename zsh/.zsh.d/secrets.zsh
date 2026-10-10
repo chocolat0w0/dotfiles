@@ -26,11 +26,14 @@ function _dv_personal_config() {
 #   "remoteEnv": { "GH_TOKEN": "${localEnv:GH_TOKEN}" }
 # 経由。以後の対話利用は dvex（下記）か codeop 起動の VS Code から行う
 # .devcontainer/personal に個人用設定があれば自動でそちらを使う
+# 起動後、ホストのグローバル user.name / user.email をコンテナへ同期する
 function dvop() {
   local op_path="${CODEOP_GH_TOKEN_PATH:-op://YOUR_VAULT/YOUR_ITEM/token}"
-  local token config_path
+  local token config_path git_user_name git_user_email
   token=$(op read "$op_path") || return
   config_path=$(_dv_personal_config)
+  git_user_name=$(git config --global --get user.name 2>/dev/null)
+  git_user_email=$(git config --global --get user.email 2>/dev/null)
   local config_args=()
   [[ -n "$config_path" ]] && config_args=(--config "$config_path")
   GH_TOKEN="$token" devcontainer up \
@@ -38,7 +41,13 @@ function dvop() {
     "${config_args[@]}" \
     --dotfiles-repository https://github.com/chocolat0w0/dotfiles.git \
     --dotfiles-install-command setup-devcontainer.sh \
-    "$@"
+    "$@" || return
+  if [[ -n "$git_user_name" ]]; then
+    GH_TOKEN="$token" devcontainer exec --workspace-folder "${PWD}" "${config_args[@]}" git config --global user.name "$git_user_name" || return
+  fi
+  if [[ -n "$git_user_email" ]]; then
+    GH_TOKEN="$token" devcontainer exec --workspace-folder "${PWD}" "${config_args[@]}" git config --global user.email "$git_user_email"
+  fi
 }
 
 # 1Password の GH_TOKEN を注入して devcontainer 内でコマンド実行（既定は対話シェル）
