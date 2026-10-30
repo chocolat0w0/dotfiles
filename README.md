@@ -30,6 +30,8 @@ devcontainer では次を実行する
 - `devcontainer/bin/git-safe-switch` -> `~/.local/bin/git-safe-switch`
 - `devcontainer/home/.claude/hooks/guard-git-worktree-rewrite.py` -> `~/.claude/hooks/guard-git-worktree-rewrite.py`
 
+`git-safe-switch` は Python 3 と、リポジトリ内の補助スクリプト `devcontainer/bin/git-safe-switch-check.py` を使います。作業ツリーやインデックスが新旧どちらかの版に一致する途中状態なら切り戻しを試み、未知の変更や未追跡ファイルとの衝突があれば停止します。新旧いずれかの版へ戻す編集や削除は途中状態と区別できません。改行変換・外部フィルターなどで保存内容がコミットと異なる場合も、安全を確認できないため停止します。
+
 VSCode の `dotfiles: Install Command` に指定してください。
 
 ## カスタムコマンド

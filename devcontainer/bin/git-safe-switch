@@ -37,6 +37,13 @@ case "$mode" in
 esac
 
 toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || die "git リポジトリではありません"
+# Load the checker before changing cwd or rewriting its repository. Keep this
+# version for every retry even if the target commit removes/replaces the helper.
+recovery_check_code=""
+if [ "$mode" != "check" ]; then
+  recovery_check_code=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve().with_name("git-safe-switch-check.py").read_text(encoding="utf-8"))' "$0") ||
+    die "復旧判定スクリプトを読み込めません（python3 と補助スクリプトを確認してください）"
+fi
 cd "$toplevel" || die "リポジトリのルートへ移動できません"
 
 case "$mode" in
@@ -180,15 +187,8 @@ for attempt in 1 2 3; do
     echo "git-safe-switch: 復旧中に HEAD またはブランチ参照が想定外に変わったため、これ以上変更しません。" >&2
     break
   fi
-  if [ -n "$(new_untracked | tr -d '\0')" ]; then
-    echo "git-safe-switch: 復旧すると上書きされる可能性がある未追跡ファイルを検出したため、これ以上変更しません:" >&2
-    while IFS= read -r -d '' path; do
-      printf '  %s\n' "$path" >&2
-    done < <(new_untracked)
-    break
-  fi
-  if ! tracked_clean; then
-    echo "git-safe-switch: 復旧すると上書きされる追跡中ファイルの変更を検出したため、これ以上変更しません。" >&2
+  if ! python3 -c "$recovery_check_code" "$orig_sha" "$target_sha"; then
+    echo "git-safe-switch: 新旧の版では説明できない変更があるため、これ以上変更しません。" >&2
     break
   fi
   if "${restore_cmd[@]}" >/dev/null 2>&1 && [ "$(git rev-parse HEAD)" = "$orig_sha" ] && tracked_clean; then

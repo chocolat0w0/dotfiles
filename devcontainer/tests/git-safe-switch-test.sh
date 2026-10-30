@@ -441,3 +441,4 @@ if [ "$failures" -ne 0 ]; then
 fi
 
 echo "ok - git-safe-switch recovery tests"
+PATH="${test_root}/bin:${PATH}" python3 "${repo_root}/devcontainer/tests/git-safe-switch-recovery-test.py"
