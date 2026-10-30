@@ -91,19 +91,22 @@ untracked_before=$(mktemp)
 trap 'rm -f "$untracked_before"' EXIT
 list_untracked > "$untracked_before"
 
+target_branch=""
 case "$mode" in
   ff)
+    target_branch="$orig_branch"
     [ -n "$orig_branch" ] || die "detached HEAD では --ff を使えません"
     git merge-base --is-ancestor HEAD "$target_sha" || die "${target_ref} へは早送りできません"
     git merge --ff-only "$target_sha"
     ;;
   create)
+    target_branch="$new_branch"
     git switch --no-track -c "$new_branch" "$target_sha"
     ;;
   *)
     full_ref=$(git rev-parse --symbolic-full-name "$target_ref" 2>/dev/null || true)
     case "$full_ref" in
-      refs/heads/*) git switch "${full_ref#refs/heads/}" ;;
+      refs/heads/*) target_branch="${full_ref#refs/heads/}"; git switch "$target_branch" ;;
       *) git switch --detach "$target_sha" ;;
     esac
     ;;
@@ -133,8 +136,61 @@ else
 fi
 echo "git-safe-switch: 失敗したため ${orig_branch:-$orig_sha} へ戻します。" >&2
 
+recovery_state_is_expected() {
+  local current_sha current_branch orig_ref new_ref
+
+  current_sha=$(git rev-parse HEAD 2>/dev/null) || return 1
+  current_branch=$(git symbolic-ref -q --short HEAD || true)
+
+  if [ "$current_sha" = "$orig_sha" ] && [ "$current_branch" = "$orig_branch" ]; then
+    :
+  elif [ "$current_sha" = "$target_sha" ] && [ "$current_branch" = "$target_branch" ]; then
+    :
+  else
+    return 1
+  fi
+
+  if [ -n "$orig_branch" ]; then
+    orig_ref=$(git rev-parse --verify --quiet "refs/heads/${orig_branch}" 2>/dev/null) || return 1
+    if [ "$mode" = "ff" ]; then
+      case "$orig_ref" in
+        "$orig_sha"|"$target_sha") ;;
+        *) return 1 ;;
+      esac
+    elif [ "$orig_ref" != "$orig_sha" ]; then
+      return 1
+    fi
+  fi
+
+  if [ "$mode" = "create" ]; then
+    new_ref=$(git rev-parse --verify --quiet "refs/heads/${new_branch}" 2>/dev/null || true)
+    if [ -n "$new_ref" ]; then
+      [ "$new_ref" = "$target_sha" ] || return 1
+    elif [ "$current_sha" != "$orig_sha" ] || [ "$current_branch" != "$orig_branch" ]; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
 restored=false
 for attempt in 1 2 3; do
+  if ! recovery_state_is_expected; then
+    echo "git-safe-switch: 復旧中に HEAD またはブランチ参照が想定外に変わったため、これ以上変更しません。" >&2
+    break
+  fi
+  if [ -n "$(new_untracked | tr -d '\0')" ]; then
+    echo "git-safe-switch: 復旧すると上書きされる可能性がある未追跡ファイルを検出したため、これ以上変更しません:" >&2
+    while IFS= read -r -d '' path; do
+      printf '  %s\n' "$path" >&2
+    done < <(new_untracked)
+    break
+  fi
+  if ! tracked_clean; then
+    echo "git-safe-switch: 復旧すると上書きされる追跡中ファイルの変更を検出したため、これ以上変更しません。" >&2
+    break
+  fi
   if "${restore_cmd[@]}" >/dev/null 2>&1 && [ "$(git rev-parse HEAD)" = "$orig_sha" ] && tracked_clean; then
     restored=true
     break
@@ -143,20 +199,28 @@ for attempt in 1 2 3; do
   sleep 1
 done
 
-# 切り替えの途中で作られたファイルのうち、切り替え先のコミットにだけあるものを消す
-while IFS= read -r -d '' path; do
-  if git cat-file -e "${target_sha}:${path}" 2>/dev/null && ! git cat-file -e "${orig_sha}:${path}" 2>/dev/null; then
-    rm -f -- "$path"
-  fi
-done < <(new_untracked)
-
-# 作ったブランチは、元のブランチへ戻せたときだけ消す
+# 作ったブランチは、元のブランチへ戻せて作成時のコミットから動いていないときだけ消す
 if [ "$mode" = "create" ] && [ "$restored" = true ] &&
   git show-ref --verify --quiet "refs/heads/${new_branch}"; then
-  git branch -D "$new_branch" >/dev/null
+  worktree_list=""
+  if ! worktree_list=$(git worktree list --porcelain 2>/dev/null); then
+    echo "git-safe-switch: worktree の使用状況を確認できないためブランチ ${new_branch} は削除しません。" >&2
+  elif printf '%s\n' "$worktree_list" | grep -Fqx "branch refs/heads/${new_branch}"; then
+    echo "git-safe-switch: ブランチ ${new_branch} は別の worktree で使用中のため削除しません。" >&2
+  elif git symbolic-ref -q "refs/heads/${new_branch}" >/dev/null 2>&1; then
+    echo "git-safe-switch: ブランチ ${new_branch} はsymbolic refへ変更されたため削除しません。" >&2
+  elif ! git update-ref --no-deref -d "refs/heads/${new_branch}" "$target_sha" 2>/dev/null; then
+    echo "git-safe-switch: ブランチ ${new_branch} は作成後に更新または削除されたため変更しません。" >&2
+  fi
 fi
 
 if [ "$restored" = true ]; then
+  if [ -n "$(new_untracked | tr -d '\0')" ]; then
+    echo "git-safe-switch: 復旧中に増えた未追跡ファイルは削除していません:" >&2
+    while IFS= read -r -d '' path; do
+      printf '  %s\n' "$path" >&2
+    done < <(new_untracked)
+  fi
   echo "git-safe-switch: ${orig_branch:-$orig_sha}（${orig_sha:0:10}）へ戻しました。ホストで実行してください。" >&2
   exit 3
 fi
