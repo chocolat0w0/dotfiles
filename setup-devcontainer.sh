@@ -110,6 +110,11 @@ mkdir -p "${HOME}/.claude" "${HOME}/.codex"
 ln -nfs "${script_dir}/devcontainer/instructions/AGENTS.md" "${HOME}/.claude/CLAUDE.md"
 ln -nfs "${script_dir}/devcontainer/instructions/AGENTS.md" "${HOME}/.codex/AGENTS.md"
 
+echo "setup agent scripts"
+mkdir -p "${HOME}/.local/bin" "${HOME}/.claude/hooks"
+ln -nfs "${script_dir}/devcontainer/bin/git-safe-switch" "${HOME}/.local/bin/git-safe-switch"
+ln -nfs "${script_dir}/devcontainer/home/.claude/hooks/guard-git-worktree-rewrite.py" "${HOME}/.claude/hooks/guard-git-worktree-rewrite.py"
+
 echo "setup Claude Code"
 copy_file_if_missing "${script_dir}/devcontainer/home/.claude/settings.json" "${HOME}/.claude/settings.json" 0644
 copy_file_if_missing "${script_dir}/devcontainer/home/.claude/statusline-command.sh" "${HOME}/.claude/statusline-command.sh" 0755

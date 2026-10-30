@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# devcontainer で作業ツリーを書き換えるブランチ操作を安全に行う。
+#   git-safe-switch <ref>                 ブランチ（またはコミット）へ切り替える
+#   git-safe-switch -c <branch> [<start>] <start>（省略時は HEAD）から upstream なしでブランチを作って切り替える
+#   git-safe-switch --ff [<ref>]          現在のブランチを <ref>（省略時は upstream）へ早送りする
+#   git-safe-switch --check <ref>         切り替えずに、読み取り専用マウント配下に差分がないかだけを判定する
+# 読み取り専用マウント配下に差分がある操作は実行せず、ホストでの実行を促す。
+# 失敗したら元のブランチへ戻し、戻せなければ状態を表示してホストでの復旧を促す。
+#
+# 終了コード: 0 成功 / 1 git が何も変えずに拒否した / 2 読み取り専用マウントに差分がある /
+#             3 失敗したので元に戻した / 4 元に戻せなかった / 64 引数の誤り
+
+set -u
+
+usage() {
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-64}"
+}
+
+die() {
+  echo "git-safe-switch: $*" >&2
+  exit 1
+}
+
+mode="switch"
+new_branch=""
+case "${1:-}" in
+  -c) mode="create"; new_branch="${2:-}"; [ -n "$new_branch" ] || usage; shift 2 ;;
+  --ff) mode="ff"; shift ;;
+  --check) mode="check"; shift ;;
+  -h|--help) usage 0 ;;
+esac
+
+case "$mode" in
+  ff|create) [ $# -le 1 ] || usage ;;
+  *) [ $# -eq 1 ] || usage ;;
+esac
+
+toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || die "git リポジトリではありません"
+cd "$toplevel" || die "リポジトリのルートへ移動できません"
+
+case "$mode" in
+  ff) target_ref="${1:-}"; [ -n "$target_ref" ] || target_ref='@{u}' ;;
+  create)
+    target_ref="${1:-HEAD}"
+    git check-ref-format --branch "$new_branch" >/dev/null 2>&1 || die "ブランチ名 ${new_branch} は使えません"
+    ! git show-ref --verify --quiet "refs/heads/${new_branch}" || die "ブランチ ${new_branch} は既にあります"
+    ;;
+  *) target_ref="$1" ;;
+esac
+
+target_sha=$(git rev-parse --verify --quiet "${target_ref}^{commit}") ||
+  die "${target_ref} がコミットとして見つかりません（必要なら先に git fetch してください）"
+
+# 作業ツリー配下の読み取り専用マウント（mountinfo の 5 列目がマウント先、6 列目がマウントオプション）
+ro_paths=()
+while IFS= read -r mount_point; do
+  case "$mount_point" in
+    "$toplevel"/*) ro_paths+=("${mount_point#"$toplevel"/}") ;;
+  esac
+done < <(awk '{ n = split($6, opts, ","); for (i = 1; i <= n; i++) if (opts[i] == "ro") print $5 }' /proc/self/mountinfo)
+
+if [ "${#ro_paths[@]}" -gt 0 ]; then
+  ro_diff=$(git diff --name-only HEAD "$target_sha" -- "${ro_paths[@]}")
+  if [ -n "$ro_diff" ]; then
+    echo "git-safe-switch: 読み取り専用マウント配下に差分があるため、コンテナでは実行しません。" >&2
+    echo "$ro_diff" | sed 's/^/  /' >&2
+    echo "ホストで実行してください。" >&2
+    exit 2
+  fi
+fi
+
+if [ "$mode" = "check" ]; then
+  echo "git-safe-switch: 読み取り専用マウント配下に差分はありません。"
+  exit 0
+fi
+
+tracked_clean() {
+  git diff --quiet && git diff --cached --quiet
+}
+
+list_untracked() {
+  git ls-files -z --others --exclude-standard | sort -z
+}
+
+tracked_clean || die "追跡中のファイルに未コミットの変更があります。コミットするか退避してから実行してください"
+
+orig_sha=$(git rev-parse HEAD)
+orig_branch=$(git symbolic-ref -q --short HEAD || true)
+untracked_before=$(mktemp)
+trap 'rm -f "$untracked_before"' EXIT
+list_untracked > "$untracked_before"
+
+case "$mode" in
+  ff)
+    [ -n "$orig_branch" ] || die "detached HEAD では --ff を使えません"
+    git merge-base --is-ancestor HEAD "$target_sha" || die "${target_ref} へは早送りできません"
+    git merge --ff-only "$target_sha"
+    ;;
+  create)
+    git switch --no-track -c "$new_branch" "$target_sha"
+    ;;
+  *)
+    full_ref=$(git rev-parse --symbolic-full-name "$target_ref" 2>/dev/null || true)
+    case "$full_ref" in
+      refs/heads/*) git switch "${full_ref#refs/heads/}" ;;
+      *) git switch --detach "$target_sha" ;;
+    esac
+    ;;
+esac
+status=$?
+
+if [ "$status" -eq 0 ] && [ "$(git rev-parse HEAD)" = "$target_sha" ] && tracked_clean; then
+  exit 0
+fi
+
+# 切り替えの途中で作られた未追跡ファイル
+new_untracked() {
+  comm -z -13 "$untracked_before" <(list_untracked)
+}
+
+# git が何も変えずに拒否した場合（未追跡ファイルの衝突など）は、そのまま失敗として返す
+if [ "$status" -ne 0 ] && [ "$(git rev-parse HEAD)" = "$orig_sha" ] &&
+  [ "$(git symbolic-ref -q --short HEAD || true)" = "$orig_branch" ] &&
+  tracked_clean && [ -z "$(new_untracked | tr -d '\0')" ]; then
+  exit 1
+fi
+
+if [ -n "$orig_branch" ]; then
+  restore_cmd=(git checkout -f -B "$orig_branch" "$orig_sha")
+else
+  restore_cmd=(git checkout -f "$orig_sha")
+fi
+echo "git-safe-switch: 失敗したため ${orig_branch:-$orig_sha} へ戻します。" >&2
+
+restored=false
+for attempt in 1 2 3; do
+  if "${restore_cmd[@]}" >/dev/null 2>&1 && [ "$(git rev-parse HEAD)" = "$orig_sha" ] && tracked_clean; then
+    restored=true
+    break
+  fi
+  echo "git-safe-switch: 戻す処理に失敗しました（${attempt} 回目）。" >&2
+  sleep 1
+done
+
+# 切り替えの途中で作られたファイルのうち、切り替え先のコミットにだけあるものを消す
+while IFS= read -r -d '' path; do
+  if git cat-file -e "${target_sha}:${path}" 2>/dev/null && ! git cat-file -e "${orig_sha}:${path}" 2>/dev/null; then
+    rm -f -- "$path"
+  fi
+done < <(new_untracked)
+
+# 作ったブランチは、元のブランチへ戻せたときだけ消す
+if [ "$mode" = "create" ] && [ "$restored" = true ] &&
+  git show-ref --verify --quiet "refs/heads/${new_branch}"; then
+  git branch -D "$new_branch" >/dev/null
+fi
+
+if [ "$restored" = true ]; then
+  echo "git-safe-switch: ${orig_branch:-$orig_sha}（${orig_sha:0:10}）へ戻しました。ホストで実行してください。" >&2
+  exit 3
+fi
+
+echo "git-safe-switch: 元の状態へ戻せませんでした。作業ツリーが中途半端な状態です。" >&2
+echo "  元の HEAD: ${orig_branch:-detached}（${orig_sha}）" >&2
+git status --short >&2
+echo "ホストで次を実行して復旧してください: ${restore_cmd[*]}" >&2
+exit 4

@@ -25,6 +25,11 @@ devcontainer では次を実行する
 - `devcontainer/instructions/AGENTS.md` -> `~/.claude/CLAUDE.md`
 - `devcontainer/instructions/AGENTS.md` -> `~/.codex/AGENTS.md`
 
+エージェント用のスクリプトもシンボリックリンクで配置します。`settings.json` は既存のファイルを上書きしないので、フックを足したときは `~/.claude/settings.json` へ手で反映してください。
+
+- `devcontainer/bin/git-safe-switch` -> `~/.local/bin/git-safe-switch`
+- `devcontainer/home/.claude/hooks/guard-git-worktree-rewrite.py` -> `~/.claude/hooks/guard-git-worktree-rewrite.py`
+
 VSCode の `dotfiles: Install Command` に指定してください。
 
 ## カスタムコマンド

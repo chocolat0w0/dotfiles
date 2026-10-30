@@ -37,3 +37,21 @@ PY
 
 - コードを変更した作業では、完了報告の前に、自分のサブエージェントへ差分のレビューを依頼する。変更の経緯を渡さずに、バグ、変更した部品を使う他の画面や機能への影響、周辺の既存コードとの書き方の違いを見させる。
 - 指摘には対応するか、対応しない理由を完了報告に書く。
+
+## /workspace でのブランチ切り替え
+
+- devcontainer の `/workspace` では、作業ツリーを書き換える git 操作が途中で失敗し、
+  新旧の版が混ざった状態で残ることがある。読み取り専用マウント（`.devcontainer/proxy/` など）に
+  差分があると必ず失敗し、virtiofs 越しの書き込みも `Permission denied` で止まることがある。
+- ブランチの切り替え・作成・早送りは `git-safe-switch` を使う。読み取り専用マウント配下に差分が
+  あれば実行せずに止まり、失敗したら元のブランチへ戻す。
+  - `git-safe-switch <ref>`、`git-safe-switch -c <branch> [<start>]`
+  - `pull` の代わりは `git fetch` の後に `git-safe-switch --ff [<ref>]`
+  - 実行してよいかの判定だけなら `git-safe-switch --check <ref>`
+- `git-safe-switch` が終了コード 2〜4 で止まったら、表示された内容を伝えてホストでの実行を
+  ユーザーに依頼する。終了コード 4（元に戻せなかった）のときは、作業ツリーを触らずに報告する。
+  終了コード 1 は git がそのまま拒否した（何も変わっていない）ので、git のメッセージに従う。
+- 早送りでない `merge`、`reset --hard`、`gh pr checkout` はホストでの実行を依頼する。
+  Claude Code では PreToolUse フックがこれらと直接の `git switch` / `git checkout <ref>` / `git pull` を止める。
+- `rebase` と `cherry-pick` は対象外。実行する前に
+  `git diff --name-only HEAD <対象> -- .devcontainer/proxy` が空であることを確かめる。
