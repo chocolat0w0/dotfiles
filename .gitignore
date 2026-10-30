@@ -1,2 +1,4 @@
 .DS_Store
 zsh/.zsh.d/secrets.local.zsh
+/docs/superpowers/plans/
+/docs/superpowers/specs/
