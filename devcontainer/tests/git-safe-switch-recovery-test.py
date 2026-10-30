@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Integration tests for partial worktree writes and recovery guards."""
+"""作業ツリーの途中書き込みと復旧ガードを確認する結合テスト。"""
 
 import os
 from pathlib import Path
@@ -39,7 +39,7 @@ class RecoveryTests(unittest.TestCase):
         self.git('switch', '-q', 'main')
         self.bin = self.root / 'bin'
         self.bin.mkdir()
-        # Fault injection surrounds real Git operations; no Git effects are mocked.
+        # 実際の Git 操作の前後で障害を発生させ、Git 自体の動作は置き換えない。
         wrapper = self.bin / 'git'
         wrapper.write_text('''#!/usr/bin/env python3
 import os, pathlib, subprocess, sys
@@ -250,7 +250,7 @@ os.execv(real, [real, *args])
         self.assertEqual((self.repo / 'node/user-data').read_text(), 'user data\n')
 
     def test_checker_removed_by_target_is_available_for_recovery(self):
-        # The installed command and helper may themselves be in the switched repo.
+        # 配置済みのコマンドと補助スクリプト自体が、切り替えるリポジトリ内にある場合。
         runner = self.repo / 'runner'
         runner.mkdir()
         shutil.copy2(SAFE_SWITCH, runner / SAFE_SWITCH.name)

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Allow rollback only when affected files/index entries match either commit.
+"""復旧対象のファイルとインデックスが新旧どちらかの版に一致する場合だけ許可する。
 
-This recognizes a possible partial Git write, not its provenance. An edit back
-to either committed version (or a deletion) is intentionally indistinguishable.
-Checks and the following checkout are not one atomic transaction.
+Git の途中書き込みとして説明できる状態かを判定し、変更の発生元までは特定しない。
+新旧いずれかの版へ戻す編集や削除は、途中書き込みと区別しない。
+判定と後続の checkout は、単一の原子的な操作ではない。
 """
 
 from bisect import bisect_left
@@ -54,13 +54,13 @@ def check(orig_sha, target_sha):
             refuse(path, 'インデックスが新旧どちらの版とも一致しません')
         index[path] = (mode, oid)
 
-    # checkout -f may remove entries in the current index as well as write orig.
+    # checkout -f は元の版を書き戻すほか、現在のインデックスにあるパスも削除し得る。
     affected = set(orig) | set(index)
     known = set(orig) | set(target)
     known_sorted = sorted(known)
     affected_sorted = sorted(affected)
-    # Old index + target worktree can include a file/directory replacement.
-    # Validate overlapping target paths before accepting them as untracked.
+    # インデックスが旧版、作業ツリーが切り替え先の版なら、ファイルとディレクトリの
+    # 入れ替わりもあり得る。重なる切り替え先パスも照合してから未追跡として許可する。
     relevant = affected | {
         path for path in target
         if any(parent in affected for parent in parents(path))
@@ -68,7 +68,7 @@ def check(orig_sha, target_sha):
     }
     blob_cache = {}
     for path in sorted(relevant):
-        # Never read through a symlink or a file in an ancestor component.
+        # 親パスにある symlink や通常ファイルをたどって読み込まない。
         blocked = False
         for parent in parents(path):
             try:
@@ -79,7 +79,7 @@ def check(orig_sha, target_sha):
             if not stat.S_ISDIR(info.st_mode):
                 if parent not in relevant:
                     refuse(parent, '復旧対象の親パスがディレクトリではありません')
-                # The ancestor itself is checked independently against the trees.
+                # 親パス自体は、新旧のツリーとの照合で別途確認する。
                 blocked = True
                 break
         if blocked:
@@ -87,11 +87,11 @@ def check(orig_sha, target_sha):
         try:
             info = os.lstat(path)
         except FileNotFoundError:
-            continue  # Missing old/new files can be a partial write.
+            continue  # 新旧いずれかのファイルの欠落は、途中書き込みとして許可する。
         if stat.S_ISDIR(info.st_mode):
             if not has_descendant(known_sorted, path):
                 refuse(path, '新旧のツリーでは説明できないディレクトリです')
-            continue  # Its known children and untracked descendants are checked below.
+            continue  # 配下の既知パスと未追跡パスは、それぞれ別途確認する。
         if stat.S_ISLNK(info.st_mode):
             mode, content = b'120000', os.readlink(path)
         elif stat.S_ISREG(info.st_mode):
@@ -113,11 +113,11 @@ def check(orig_sha, target_sha):
         if not matched:
             refuse(path, '内容・種別・実行権限が新旧どちらの版とも一致しません')
 
-    # Include ignored files: forced checkout can destroy them too. Check both
-    # directions of a file/directory collision, not just identical path names.
+    # 強制 checkout は ignored ファイルも壊し得るため、検査対象に含める。
+    # 同一パスだけでなく、ファイルとディレクトリの親子関係による衝突も双方向で確認する。
     for path in git('ls-files', '--others', '-z').split(b'\0'):
         if not path or path in relevant:
-            continue  # Exact affected paths were content-checked above.
+            continue  # 復旧対象と同一のパスは、上で内容を照合済み。
         if (any(parent in affected for parent in parents(path))
                 or has_descendant(affected_sorted, path)):
             refuse(path, '未追跡ファイルが復旧対象の親子パスと衝突します')

@@ -37,8 +37,8 @@ case "$mode" in
 esac
 
 toplevel=$(git rev-parse --show-toplevel 2>/dev/null) || die "git リポジトリではありません"
-# Load the checker before changing cwd or rewriting its repository. Keep this
-# version for every retry even if the target commit removes/replaces the helper.
+# cwd の変更やリポジトリの書き換え前に判定スクリプトを読み込む。
+# 切り替え先で削除・変更されても、再試行には読み込み時の版を使う。
 recovery_check_code=""
 if [ "$mode" != "check" ]; then
   recovery_check_code=$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.argv[1]).resolve().with_name("git-safe-switch-check.py").read_text(encoding="utf-8"))' "$0") ||

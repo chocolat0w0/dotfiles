@@ -8,8 +8,8 @@ real_git=$(command -v git)
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/git-safe-switch-test.XXXXXXXX") || exit 1
 trap 'rm -rf "$test_root"' EXIT
 
-# git-safe-switch runs in Linux devcontainers, where GNU comm supports -z.
-# Supply the same narrow behavior when these tests run on macOS.
+# git-safe-switch を使う Linux devcontainer では GNU comm の -z が利用できる。
+# macOS でもテストできるよう、必要な動作だけを代替実装する。
 mkdir -p "${test_root}/bin"
 cat > "${test_root}/bin/comm" <<'PY'
 #!/usr/bin/env python3
