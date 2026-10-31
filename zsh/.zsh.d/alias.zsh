@@ -33,13 +33,10 @@ alias gst='git status -s'                                                    # s
 alias gdf='git diff'                                                         # diff
 
 #> git / branch
-alias gb='git checkout'                                                      # checkout
 alias gbc='git checkout -b'                                                  # 新規ブランチ作成して checkout
 alias gbs='git branch -a'                                                    # ブランチ一覧
-alias gbd='git branch -D'                                                    # ブランチ強制削除
 
 #> git / add
-alias ga='git add'                                                           # add
 alias gaa='git add --all'                                                    # add (all)
 
 #> git / commit
@@ -65,13 +62,9 @@ alias gcp='git cherry-pick'                                                  # c
 alias grma='git status | grep deleted: | awk '\''{print $2}'\'' | xargs git rm'    # deleted ファイルを git rm
 alias grm='git rm'                                                           # rm
 alias grmf='rm'                                                              # rm (force, git管理外)
-alias grv='git checkout -B reviewing'                                        # reviewing ブランチに checkout
 alias gign='git rm -r --cached .; git add .'                                # .gitignore を反映
 
 #> git / worktree
-alias gw='git worktree list'                                                 # worktree 一覧
-function gwa() { git worktree add "$@" && cd "$1" }                        # worktree 追加して cd
-alias gwd='git worktree remove'                                              # worktree 削除
 # メイン worktree に戻る（worktree とブランチの削除を確認）
 function gwb() {
   local current_path current_branch main_path answer
@@ -86,58 +79,6 @@ function gwb() {
     git worktree remove "$current_path"
     git branch -D "$current_branch"
   fi
-}
-
-#> markdown
-
-# markdown を HTML に変換してブラウザで開く: mdp <file.md>
-function mdp() {
-  local file="$1"
-  if [[ -z "$file" ]]; then
-    echo "Usage: mdp <file.md>" >&2
-    return 1
-  fi
-  if [[ ! -f "$file" ]]; then
-    echo "mdp: no such file: $file" >&2
-    return 1
-  fi
-  if ! command -v pandoc >/dev/null 2>&1; then
-    echo "mdp: pandoc が必要です。'brew install pandoc' でインストールしてください。" >&2
-    return 1
-  fi
-
-  # pandoc のバージョンでオプション名が違うため --help を見て決める
-  #   --self-contained  → --embed-resources    (2.19 で改称)
-  #   --highlight-style → --syntax-highlighting (3.10 で改称)
-  local help embed hl
-  help=$(pandoc --help 2>&1)
-  if [[ "$help" == *--embed-resources* ]]; then
-    embed='--embed-resources'
-  else
-    embed='--self-contained'
-  fi
-  if [[ "$help" == *--syntax-highlighting* ]]; then
-    hl='--syntax-highlighting'
-  else
-    hl='--highlight-style'
-  fi
-
-  local tmpdir base out
-  tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/mdp.XXXXXXXX") || return 1
-  base=$(basename "$file")
-  out="${tmpdir}/${base%.*}.html"
-
-  # 本文幅は pandoc 既定の 36em だと狭いので広げる（MDP_MAX_WIDTH で上書き可）
-  # コードブロックは明色テーマだと背景色が付かず本文に埋もれるため暗色テーマにする
-  # （MDP_HIGHLIGHT_STYLE で上書き可: pandoc --list-highlight-styles 参照）
-  pandoc -f gfm -t html --standalone "$embed" --metadata title="$base" \
-    "$hl=${MDP_HIGHLIGHT_STYLE:-zenburn}" \
-    -V maxwidth="${MDP_MAX_WIDTH:-50em}" -o "$out" "$file" || return 1
-
-  case ${OSTYPE} in
-    darwin*) open "$out" ;;
-    *)       xdg-open "$out" >/dev/null 2>&1 ;;
-  esac
 }
 
 # C で標準出力をクリップボードにコピーする

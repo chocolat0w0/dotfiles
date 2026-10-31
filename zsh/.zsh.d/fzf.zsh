@@ -27,7 +27,7 @@ fi
 #> git / fzf
 
 # ブランチをfzfで選択して checkout（origin/ でリモートのみ絞込）
-function gbf() {
+function gb() {
   local selected branch
   selected=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -44,7 +44,7 @@ function gbf() {
 }
 
 # reviewing ブランチ作成（fzf でベースブランチを選択）
-function grvf() {
+function grv() {
   local selected
   selected=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -57,7 +57,7 @@ function grvf() {
 }
 
 # ブランチをfzfで選択して削除（複数選択可）
-function gbdf() {
+function gbd() {
   local branches
   branches=$(git branch --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -98,7 +98,7 @@ function gplf() {
 }
 
 # ブランチをfzfで選択して rebase
-function grbf() {
+function grb() {
   local branch
   branch=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -109,7 +109,7 @@ function grbf() {
 }
 
 # ブランチをfzfで選択して rebase --onto <newbase> <upstream>
-function grbof() {
+function grbo() {
   local newbase upstream
   newbase=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -127,7 +127,7 @@ function grbof() {
 }
 
 # コミットをfzfで選択して rebase -i（そのコミットを含む）
-function grbif() {
+function grbi() {
   local hash
   hash=$(git log --oneline --date=short \
     --pretty=format:'%C(yellow)%h%Creset %ad %C(cyan)%an%Creset %s%C(auto)%d%Creset' |
@@ -138,7 +138,7 @@ function grbif() {
 }
 
 # 変更ファイルをfzfで選択して git add / restore --staged（複数選択可、トグル）
-function gaf() {
+function ga() {
   local selected
   selected=$(git status --short |
     awk '
@@ -171,7 +171,7 @@ function gaf() {
 #> git / worktree / fzf
 
 # worktree をfzfで選択して cd
-function gwf() {
+function gw() {
   local worktree
   worktree=$(git worktree list | tail -n +2 | awk '{print $1}' |
     fzf --prompt="worktree cd> " \
@@ -192,7 +192,7 @@ function gwn() {
 }
 
 # 既存ブランチをfzfで選択してworktree作成してcd
-function gwaf() {
+function gwa() {
   local selected branch repo_root worktree_path
   selected=$(git branch -a --sort=-committerdate |
     sed 's/^[* ]*//' |
@@ -214,7 +214,7 @@ function gwaf() {
 }
 
 # worktreeをfzfで選択して削除（複数選択可、紐づくブランチの削除を追加確認）
-function gwdf() {
+function gwd() {
   local worktrees
   worktrees=$(git worktree list | tail -n +2 | awk '{print $1}' |
     fzf --multi --prompt="worktree remove> " \
@@ -245,7 +245,7 @@ function gwdf() {
 #> markdown / fzf
 
 # markdown をfzfで選択して HTML に変換してブラウザで開く
-function mdpf() {
+function mdp() {
   local file
   file=$(find . \( -name .git -o -name node_modules \) -prune -o \
       -type f -name '*.md' -print 2>/dev/null |
@@ -253,7 +253,48 @@ function mdpf() {
     sort |
     fzf --prompt="markdown> " --preview='head -100 {}' \
         --preview-window=right:60%)
-  [[ -n "$file" ]] && mdp "$file"
+  [[ -z "$file" ]] && return
+  if [[ ! -f "$file" ]]; then
+    echo "mdp: no such file: $file" >&2
+    return 1
+  fi
+  if ! command -v pandoc >/dev/null 2>&1; then
+    echo "mdp: pandoc が必要です。'brew install pandoc' でインストールしてください。" >&2
+    return 1
+  fi
+
+  # pandoc のバージョンでオプション名が違うため --help を見て決める
+  #   --self-contained  → --embed-resources    (2.19 で改称)
+  #   --highlight-style → --syntax-highlighting (3.10 で改称)
+  local help embed hl
+  help=$(pandoc --help 2>&1)
+  if [[ "$help" == *--embed-resources* ]]; then
+    embed='--embed-resources'
+  else
+    embed='--self-contained'
+  fi
+  if [[ "$help" == *--syntax-highlighting* ]]; then
+    hl='--syntax-highlighting'
+  else
+    hl='--highlight-style'
+  fi
+
+  local tmpdir base out
+  tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/mdp.XXXXXXXX") || return 1
+  base=$(basename "$file")
+  out="${tmpdir}/${base%.*}.html"
+
+  # 本文幅は pandoc 既定の 36em だと狭いので広げる（MDP_MAX_WIDTH で上書き可）
+  # コードブロックは明色テーマだと背景色が付かず本文に埋もれるため暗色テーマにする
+  # （MDP_HIGHLIGHT_STYLE で上書き可: pandoc --list-highlight-styles 参照）
+  pandoc -f gfm -t html --standalone "$embed" --metadata title="$base" \
+    "$hl=${MDP_HIGHLIGHT_STYLE:-zenburn}" \
+    -V maxwidth="${MDP_MAX_WIDTH:-50em}" -o "$out" "$file" || return 1
+
+  case ${OSTYPE} in
+    darwin*) open "$out" ;;
+    *)       xdg-open "$out" >/dev/null 2>&1 ;;
+  esac
 }
 
 ########################################
