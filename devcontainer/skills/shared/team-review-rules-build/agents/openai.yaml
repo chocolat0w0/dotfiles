@@ -1,0 +1,6 @@
+interface:
+  display_name: "Team Review Rules Build"
+  short_description: "Extract reviewer feedback from past PRs and build reusable team review rules"
+  default_prompt: "Use $team-review-rules-build to collect reviewer comments from the last 100 merged PRs, classify signal from noise for my approval, then abstract them into review rules for my approval before saving."
+policy:
+  allow_implicit_invocation: false
