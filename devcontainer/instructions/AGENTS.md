@@ -55,6 +55,9 @@ PY
   Claude Code では PreToolUse フックがこれらと直接の `git switch` / `git checkout <ref>` / `git pull` を止める。
 - `rebase` と `cherry-pick` は対象外。実行する前に
   `git diff --name-only HEAD <対象> -- .devcontainer/proxy` が空であることを確かめる。
+- `rebase` や `cherry-pick` の途中で「Your local changes to the following files would be overwritten」と止まっても、
+  `git status` に差分が無ければ、stat の食い違いによる誤検知。`git update-index --refresh` の後に `--continue` で進める。
+  本当の競合は `git diff --name-only --diff-filter=U` に出るので、それで区別する。
 
 ## GBrain の記憶（recall / remember）
 
