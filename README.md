@@ -8,6 +8,8 @@
 % ./setup.sh
 ```
 
+ホストの Git には `diff.autoRefreshIndex=false` を設定します。これにより、共有された `.git` の index をホストの `git diff` が更新することを防ぎます。stat 情報だけが変わったファイルが差分に表示された場合は、`git status` を実行すると解消します。
+
 devcontainer では次を実行する
 
 ```bash

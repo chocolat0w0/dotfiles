@@ -2,8 +2,11 @@
 
 echo "start setup"
 
-echo "setup zsh"
 script_dir=$(cd "$(dirname "$0")"; pwd)
+echo "setup git"
+git config --global diff.autoRefreshIndex false
+
+echo "setup zsh"
 ln -fs "${script_dir}/zsh/.zshrc" "${HOME}/.zshrc"
 ln -nfs "${script_dir}/zsh/.zsh.d" "${HOME}/.zsh.d"
 source "${HOME}/.zshrc"
